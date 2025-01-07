@@ -17,10 +17,13 @@ class BitmapProvider(
     private val getBitmapSize: () -> Int,
     private val getColor: (isDark: Boolean) -> Int
 ) {
+    @set:Synchronized
     var lastUri: Uri? = null
         private set
 
+    @set:Synchronized
     private var lastBitmap: Bitmap? = null
+        get() = field?.takeUnless { it.isRecycled }
         set(value) {
             field = value
             listener?.invoke(value)
@@ -41,7 +44,11 @@ class BitmapProvider(
         val isSystemInDarkMode = resources.configuration.uiMode and
                 Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
 
-        if (::defaultBitmap.isInitialized && isSystemInDarkMode == lastIsSystemInDarkMode) return false
+        var oldBitmap: Bitmap? = null
+        if (::defaultBitmap.isInitialized) {
+            if (isSystemInDarkMode == lastIsSystemInDarkMode) return false
+            oldBitmap = defaultBitmap
+        }
 
         lastIsSystemInDarkMode = isSystemInDarkMode
 
@@ -53,6 +60,7 @@ class BitmapProvider(
         ).applyCanvas {
             drawColor(getColor(isSystemInDarkMode))
         }
+        oldBitmap?.recycle()
 
         return lastBitmap == null
     }
@@ -66,7 +74,6 @@ class BitmapProvider(
             return
         }
 
-        currentTask?.dispose()
         lastUri = uri
 
         if (uri == null) {
@@ -75,6 +82,7 @@ class BitmapProvider(
             return
         }
 
+        val oldTask = currentTask
         currentTask = applicationContext.imageLoader.enqueue(
             ImageRequest.Builder(applicationContext)
                 .data(uri.thumbnail(getBitmapSize()))
@@ -91,6 +99,7 @@ class BitmapProvider(
                 )
                 .build()
         )
+        oldTask?.dispose()
     }
 
     fun setListener(callback: ((Bitmap?) -> Unit)?) {

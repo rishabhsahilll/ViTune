@@ -34,6 +34,7 @@ object PlayerPreferences : GlobalPreferencesHolder() {
     var minimumSilence by long(2_000_000L)
     var persistentQueue by boolean(true)
     var stopWhenClosed by boolean(false)
+    var stopOnMinimumVolume by boolean(true)
 
     var isShowingLyrics by boolean(false)
     var isShowingSynchronizedLyrics by boolean(false)

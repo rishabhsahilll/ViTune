@@ -272,7 +272,7 @@ private fun WavySeekBarBody(
             .drawWithContent {
                 drawContent()
 
-                if (poiTimestamp != null && position < poiTimestamp) drawPoi(
+                if (poiTimestamp != null && position <= poiTimestamp) drawPoi(
                     range = range,
                     position = poiTimestamp,
                     color = color
@@ -418,10 +418,11 @@ private fun ContentDrawScope.drawPoi(
     val poiPosition = if (range.endInclusive < range.start) 0f
     else (position - range.start) / (range.endInclusive - range.start).toFloat() * size.width
 
+    val widthPx = width.toPx()
     drawRoundRect(
         color = color,
-        topLeft = Offset(x = poiPosition, y = 0f),
-        size = Size(width = width.toPx(), height = size.height),
+        topLeft = Offset(x = poiPosition - widthPx / 2, y = 0f),
+        size = Size(width = widthPx, height = size.height),
         cornerRadius = CornerRadius((width / 2).toPx())
     )
 }

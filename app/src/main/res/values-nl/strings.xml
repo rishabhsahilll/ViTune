@@ -309,6 +309,8 @@
     <string name="resume_playback_description">Zodra een bedraad of Bluetooth apparaat is aangesloten</string>
     <string name="stop_when_closed">Stop bij sluiten</string>
     <string name="stop_when_closed_description">Wanneer je de app afsluit stopt de muziek met afspelen</string>
+    <string name="pause_minimum_volume">Pauzeer bij geluid uit</string>
+    <string name="pause_minimum_volume_description">Pauzeer de speler wanneer je het geluid van je apparaat uitzet</string>
 
     <string name="audio">Audio</string>
     <string name="skip_silence">Sla stilte over</string>

@@ -309,6 +309,8 @@
     <string name="resume_playback_description">When a wired or Bluetooth device is connected</string>
     <string name="stop_when_closed">Stop when closed</string>
     <string name="stop_when_closed_description">When you close the app, the music stops playing</string>
+    <string name="pause_minimum_volume">Pause on minimum volume</string>
+    <string name="pause_minimum_volume_description">Pause the player when you set your device volume to zero</string>
 
     <string name="audio">Audio</string>
     <string name="skip_silence">Skip silence</string>

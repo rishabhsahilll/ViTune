@@ -61,6 +61,13 @@ fun PlayerSettings() = with(PlayerPreferences) {
             )
 
             SwitchSettingsEntry(
+                title = stringResource(R.string.pause_minimum_volume),
+                text = stringResource(R.string.pause_minimum_volume_description),
+                isChecked = stopOnMinimumVolume,
+                onCheckedChange = { stopOnMinimumVolume = it }
+            )
+
+            SwitchSettingsEntry(
                 title = stringResource(R.string.skip_on_error),
                 text = stringResource(R.string.skip_on_error_description),
                 isChecked = skipOnError,
