@@ -33,6 +33,7 @@ import app.vitune.android.ui.screens.Route
 import app.vitune.android.ui.screens.albumRoute
 import app.vitune.android.ui.screens.searchresult.ItemsPage
 import app.vitune.android.utils.asMediaItem
+import app.vitune.android.utils.completed
 import app.vitune.compose.persist.PersistMapCleanup
 import app.vitune.compose.persist.persist
 import app.vitune.compose.persist.persistList
@@ -85,6 +86,7 @@ fun AlbumScreen(browseId: String) {
 
                 withContext(Dispatchers.IO) {
                     Innertube.albumPage(BrowseBody(browseId = browseId))
+                        ?.completed()
                         ?.onSuccess { newAlbumPage ->
                             albumPage = newAlbumPage
 
