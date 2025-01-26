@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import app.vitune.core.ui.LocalAppearance
-import app.vitune.core.ui.primaryButton
+import app.vitune.core.ui.surface
 
 @Composable
 fun SecondaryButton(
@@ -30,7 +30,7 @@ fun SecondaryButton(
         modifier = modifier
             .clip(CircleShape)
             .clickable(enabled = enabled, onClick = onClick)
-            .background(colorPalette.primaryButton)
+            .background(colorPalette.surface)
             .size(48.dp)
     ) {
         Image(

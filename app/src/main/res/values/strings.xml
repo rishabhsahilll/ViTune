@@ -239,6 +239,8 @@
     <string name="lyrics_show_system_bars_description">Turning this off enables system-wide full-screen</string>
     <string name="pip">PIP</string>
     <string name="pip_description">Automatically switches to Picture-In-Picure mode when switching to the background</string>
+    <string name="auto_open_player">Open player</string>
+    <string name="auto_open_player_description">Automatically expand player when tapping on a song</string>
 
     <string name="cache">Cache</string>
     <string name="cache_description">When the cache runs out of space, the resources that haven\'t been accessed for the longest time are cleared</string>

@@ -247,7 +247,7 @@ inline val ColorPalette.collapsedPlayerProgressBar
     get() = if (isPureBlack) defaultDarkPalette.background0 else background2
 inline val ColorPalette.favoritesIcon get() = if (isDefault) red else accent
 inline val ColorPalette.shimmer get() = if (isDefault) Color(0xff838383) else accent
-inline val ColorPalette.primaryButton get() = if (isPureBlack) Color(0xff272727) else background2
+inline val ColorPalette.surface get() = if (isPureBlack) Color(0xff272727) else background2
 
 @Suppress("UnusedReceiverParameter")
 inline val ColorPalette.overlay get() = Color.Black.copy(alpha = 0.75f)

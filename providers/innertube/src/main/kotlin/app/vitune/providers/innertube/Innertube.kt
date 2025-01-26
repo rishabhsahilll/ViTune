@@ -1,13 +1,15 @@
 package app.vitune.providers.innertube
 
+import app.vitune.providers.innertube.models.Context
 import app.vitune.providers.innertube.models.MusicNavigationButtonRenderer
 import app.vitune.providers.innertube.models.NavigationEndpoint
 import app.vitune.providers.innertube.models.Runs
 import app.vitune.providers.innertube.models.Thumbnail
-import app.vitune.providers.innertube.models.UserAgents
 import app.vitune.providers.utils.runCatchingCancellable
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.compression.brotli
@@ -29,51 +31,45 @@ import io.ktor.http.parseQueryString
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+internal val json = Json {
+    ignoreUnknownKeys = true
+    explicitNulls = false
+    encodeDefaults = true
+}
 
 object Innertube {
     private var javascriptChallenge: JavaScriptChallenge? = null
 
-    private val javascriptClient = HttpClient(OkHttp) {
-        expectSuccess = true
-
-        install(ContentEncoding) {
-            brotli(1.0f)
-            gzip(0.9f)
-            deflate(0.8f)
-        }
-
-        install(Logging)
-
-        defaultRequest {
-            header("User-Agent", UserAgents.DESKTOP)
-        }
-    }
-
     private val OriginInterceptor = createClientPlugin("OriginInterceptor") {
         client.sendPipeline.intercept(HttpSendPipeline.State) {
             context.headers {
-                val host = if (context.host == "youtubei.googleapis.com") "www.youtube.com" else context.host
+                val host =
+                    if (context.host == "youtubei.googleapis.com") "www.youtube.com" else context.host
                 val origin = "${context.url.protocol.name}://$host"
-                append("host", host)
-                append("x-origin", origin)
-                append("origin", origin)
+                set("host", host)
+                set("x-origin", origin)
+                set("origin", origin)
             }
         }
     }
 
-    val logger = LoggerFactory.getLogger(Innertube::class.java)
-    val client = HttpClient(OkHttp) {
+    val logger: Logger = LoggerFactory.getLogger(Innertube::class.java)
+    val baseClient = HttpClient(OkHttp) {
         expectSuccess = true
 
+        HttpResponseValidator {
+            handleResponseExceptionWithRequest { cause, _ ->
+                val ex = cause as? ResponseException ?: return@handleResponseExceptionWithRequest
+                val code = ex.response.status.value
+                if (code !in (100..<600)) throw InvalidHttpCodeException(code)
+            }
+        }
+
         install(ContentNegotiation) {
-            json(
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                    encodeDefaults = true
-                }
-            )
+            json(json)
         }
 
         install(ContentEncoding) {
@@ -87,72 +83,82 @@ object Innertube {
         }
 
         install(OriginInterceptor)
-
+    }
+    val client = baseClient.config {
         defaultRequest {
             url(scheme = "https", host = "music.youtube.com") {
                 contentType(ContentType.Application.Json)
                 headers {
-                    append("X-Goog-Api-Key", API_KEY)
+                    set("X-Goog-Api-Key", API_KEY)
                 }
                 parameters {
-                    append("prettyPrint", "false")
-                    append("key", API_KEY)
+                    set("prettyPrint", "false")
+                    set("key", API_KEY)
                 }
             }
         }
     }
 
-    private suspend fun getJavaScriptChallenge(): JavaScriptChallenge? {
+    @Suppress("all")
+    private val regexes = listOf(
+        "\\bm=([a-zA-Z0-9$]{2,})\\(decodeURIComponent\\(h\\.s\\)\\)".toRegex(),
+        "\\bc&&\\(c=([a-zA-Z0-9$]{2,})\\(decodeURIComponent\\(c\\)\\)".toRegex(),
+        "(?:\\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2,})\\s*=\\s*function\\(\\s*a\\s*\\)\\s*\\{\\s*a\\s*=\\s*a\\.split\\(\\s*\"\"\\s*\\)".toRegex(),
+        "([\\w$]+)\\s*=\\s*function\\((\\w+)\\)\\{\\s*\\2=\\s*\\2\\.split\\(\"\"\\)\\s*;".toRegex()
+    )
+
+    private suspend fun getJavaScriptChallenge(context: Context): JavaScriptChallenge? {
         if (javascriptChallenge != null) return javascriptChallenge
 
-        val iframe = javascriptClient.get("https://www.youtube.com/iframe_api").bodyAsText()
-        val version = "player\\\\?/([0-9a-fA-F]{8})\\\\?/".toRegex()
-            .matchEntire(iframe)
-            ?.groups
-            ?.get(1)
-            ?.value
-            ?.trim()
-            ?.takeIf { it.isNotBlank() } ?: return null
+        context.client.getConfiguration()
+        val jsUrl = context.client.jsUrl ?: return null
 
-        val sourceFile = javascriptClient
-            .get("https://www.youtube.com/s/player/$version/player_ias.vflset/en_US/base.js")
+        val sourceFile = baseClient
+            .get("${context.client.root}$jsUrl") {
+                context.apply()
+            }
             .bodyAsText()
+
         val timestamp = "(?:signatureTimestamp|sts):(\\d{5})".toRegex()
-            .matchEntire(sourceFile)
+            .find(sourceFile)
             ?.groups
             ?.get(1)
             ?.value
             ?.trim()
             ?.takeIf { it.isNotBlank() } ?: return null
-        val functionName = "(\\w+)=function\\(a\\)\\{a=a.split\\(\"\"\\);\\w+".toRegex()
-            .matchEntire(sourceFile)
-            ?.groups
-            ?.get(1)
-            ?.value
-            ?.trim()
-            ?.takeIf { it.isNotBlank() } ?: return null
+        val functionName = regexes.firstNotNullOfOrNull { regex ->
+            regex
+                .find(sourceFile)
+                ?.groups
+                ?.get(1)
+                ?.value
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+        } ?: return null
 
         return JavaScriptChallenge(
-            source = sourceFile,
+            source = sourceFile
+                .replace("document.location.hostname", "\"youtube.com\"")
+                .replace("window.location.hostname", "\"youtube.com\"")
+                .replace("XMLHttpRequest.prototype.fetch", "\"aaa\""),
             timestamp = timestamp,
             functionName = functionName
         ).also { javascriptChallenge = it }
     }
 
-    // TODO: not stable as of right now, is the implementation correct?
-    suspend fun decodeSignatureCipher(cipher: String): String? = runCatchingCancellable {
+    suspend fun decodeSignatureCipher(context: Context, cipher: String): String? = runCatchingCancellable {
         val params = parseQueryString(cipher)
         val signature = params["s"] ?: return@runCatchingCancellable null
         val signatureParam = params["sp"] ?: return@runCatchingCancellable null
         val url = params["url"] ?: return@runCatchingCancellable null
 
-        val actualSignature = getJavaScriptChallenge()?.decode(signature)
+        val actualSignature = getJavaScriptChallenge(context)?.decode(signature)
             ?: return@runCatchingCancellable null
         "$url&$signatureParam=$actualSignature"
     }?.onFailure { it.printStackTrace() }?.getOrNull()
 
-    suspend fun getSignatureTimestamp(): String? = runCatchingCancellable {
-        getJavaScriptChallenge()?.timestamp
+    suspend fun getSignatureTimestamp(context: Context): String? = runCatchingCancellable {
+        getJavaScriptChallenge(context)?.timestamp
     }?.onFailure { it.printStackTrace() }?.getOrNull()
 
     private const val API_KEY = "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30"
@@ -356,3 +362,6 @@ object Innertube {
         val continuation: String?
     )
 }
+
+data class InvalidHttpCodeException(val code: Int) :
+    IllegalStateException("Invalid http code received: $code")

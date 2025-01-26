@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.android.application)
@@ -20,7 +21,7 @@ android {
         minSdk = 21
         targetSdk = 35
 
-        versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 13
+        versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 14
         versionName = project.version.toString()
 
         multiDexEnabled = true
@@ -79,10 +80,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + listOf("-Xcontext-receivers")
-    }
-
     packaging {
         resources.excludes.add("META-INF/**/*")
     }
@@ -95,6 +92,16 @@ android {
 
 kotlin {
     jvmToolchain(libs.versions.jvm.get().toInt())
+
+    compilerOptions {
+        languageVersion.set(KotlinVersion.KOTLIN_2_2)
+
+        freeCompilerArgs.addAll(
+            "-Xcontext-receivers",
+            "-Xnon-local-break-continue",
+            "-Xconsistent-data-class-copy-visibility"
+        )
+    }
 }
 
 ksp {
@@ -103,7 +110,6 @@ ksp {
 
 composeCompiler {
     featureFlags = setOf(
-        ComposeFeatureFlag.StrongSkipping,
         ComposeFeatureFlag.OptimizeNonSkippingGroups
     )
 

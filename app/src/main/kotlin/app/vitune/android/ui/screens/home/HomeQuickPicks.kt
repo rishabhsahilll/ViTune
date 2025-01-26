@@ -62,6 +62,7 @@ import app.vitune.android.ui.screens.Route
 import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.center
 import app.vitune.android.utils.forcePlay
+import app.vitune.android.utils.playingSong
 import app.vitune.android.utils.rememberSnapLayoutInfo
 import app.vitune.android.utils.secondary
 import app.vitune.android.utils.semiBold
@@ -142,6 +143,8 @@ fun QuickPicks(
         .padding(top = 24.dp, bottom = 8.dp)
         .padding(endPaddingValues)
 
+    val (currentMediaId, playing) = playingSong(binder)
+
     BoxWithConstraints {
         val quickPicksLazyGridItemWidthFactor =
             if (isLandscape && maxWidth * 0.475f >= 320.dp) 0.475f else 0.75f
@@ -220,7 +223,8 @@ fun QuickPicks(
                                         modifier = Modifier.size(16.dp)
                                     )
                                 },
-                                showDuration = false
+                                showDuration = false,
+                                isPlaying = playing && currentMediaId == song.id
                             )
                         }
                     }
@@ -254,7 +258,8 @@ fun QuickPicks(
                                 )
                                 .animateItem(fadeInSpec = null, fadeOutSpec = null)
                                 .width(itemInHorizontalGridWidth),
-                            showDuration = false
+                            showDuration = false,
+                            isPlaying = playing && currentMediaId == song.key
                         )
                     }
                 }

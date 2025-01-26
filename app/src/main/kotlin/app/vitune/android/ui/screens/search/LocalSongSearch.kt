@@ -37,6 +37,7 @@ import app.vitune.android.utils.align
 import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.forcePlay
 import app.vitune.android.utils.medium
+import app.vitune.android.utils.playingSong
 import app.vitune.compose.persist.persistList
 import app.vitune.core.ui.Dimensions
 import app.vitune.core.ui.LocalAppearance
@@ -65,6 +66,8 @@ fun LocalSongSearch(
     }
 
     val lazyListState = rememberLazyListState()
+
+    val (currentMediaId, playing) = playingSong(binder)
 
     Box(modifier = modifier) {
         LazyColumn(
@@ -125,7 +128,8 @@ fun LocalSongSearch(
                         )
                         .animateItem(),
                     song = song,
-                    thumbnailSize = Dimensions.thumbnails.song
+                    thumbnailSize = Dimensions.thumbnails.song,
+                    isPlaying = playing && currentMediaId == song.id // TODO: refactor out a simple 'song list' in order to fix this kind of repetition
                 )
             }
         }

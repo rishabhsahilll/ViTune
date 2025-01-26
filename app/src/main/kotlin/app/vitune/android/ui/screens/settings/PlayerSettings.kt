@@ -128,9 +128,10 @@ fun PlayerSettings() = with(PlayerPreferences) {
                     state = newValue,
                     onSlide = { newValue = it },
                     onSlideComplete = { volumeNormalizationBaseGain = newValue },
-                    toDisplay = { stringResource(R.string.format_db, "%.2f".format(it)) },
+                    toDisplay = { stringResource(R.string.format_db, "%.1f".format(it)) },
                     range = -20f..20f,
-                    steps = 79
+                    steps = 79,
+                    showTicks = false
                 )
             }
 

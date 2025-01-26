@@ -38,6 +38,7 @@ import app.vitune.android.ui.screens.albumRoute
 import app.vitune.android.ui.screens.searchresult.ItemsPage
 import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.forcePlay
+import app.vitune.android.utils.playingSong
 import app.vitune.compose.persist.PersistMapCleanup
 import app.vitune.compose.persist.persist
 import app.vitune.compose.routing.RouteHandler
@@ -106,6 +107,8 @@ fun ArtistScreen(browseId: String) {
         GlobalRoutes()
 
         Content {
+            val (currentMediaId, playing) = playingSong(binder)
+
             val thumbnailContent = adaptiveThumbnailContent(
                 isLoading = artist?.timestamp == null,
                 url = artist?.thumbnailUrl,
@@ -234,7 +237,8 @@ fun ArtistScreen(browseId: String) {
                                             binder?.player?.forcePlay(song.asMediaItem)
                                             binder?.setupRadio(song.info?.endpoint)
                                         }
-                                    )
+                                    ),
+                                    isPlaying = playing && currentMediaId == song.key
                                 )
                             },
                             itemPlaceholderContent = {

@@ -11,11 +11,25 @@ data class PlayerResponse(
     val streamingData: StreamingData?,
     val videoDetails: VideoDetails?,
     @Transient
+    val context: Context? = null,
+    @Transient
     val cpn: String? = null
 ) {
+    val reason
+        get() = if (playabilityStatus != null && playabilityStatus.status != "OK") buildString {
+            appendLine("YouTube responded with status '${playabilityStatus.reason.orEmpty()}'")
+            playabilityStatus.reason?.let { appendLine("Reason: $it") }
+            playabilityStatus.errorScreen?.playerErrorMessageRenderer?.subreason?.text?.let {
+                appendLine()
+                appendLine(it)
+            }
+        } else null
+
     @Serializable
     data class PlayabilityStatus(
-        val status: String?
+        val status: String? = null,
+        val reason: String? = null,
+        val errorScreen: ErrorScreen? = null
     )
 
     @Serializable
@@ -24,11 +38,12 @@ data class PlayerResponse(
     ) {
         @Serializable
         data class AudioConfig(
-            internal val loudnessDb: Double?
+            internal val loudnessDb: Double?,
+            internal val perceptualLoudnessDb: Double?
         ) {
             // For music clients only
             val normalizedLoudnessDb: Float?
-                get() = loudnessDb?.plus(7)?.toFloat()
+                get() = (loudnessDb ?: perceptualLoudnessDb?.plus(7))?.plus(7)?.toFloat()
         }
     }
 
@@ -38,10 +53,11 @@ data class PlayerResponse(
         val expiresInSeconds: Long?
     ) {
         val highestQualityFormat: AdaptiveFormat?
-            get() = adaptiveFormats?.filter { it.url != null || it.signatureCipher != null }?.let { formats ->
-                formats.findLast { it.itag == 251 || it.itag == 140 }
-                    ?: formats.maxBy { it.bitrate ?: 0L }
-            }
+            get() = adaptiveFormats?.filter { it.url != null || it.signatureCipher != null }
+                ?.let { formats ->
+                    formats.findLast { it.itag == 251 || it.itag == 140 }
+                        ?: formats.maxBy { it.bitrate ?: 0L }
+                }
 
         @Serializable
         data class AdaptiveFormat(
@@ -58,12 +74,23 @@ data class PlayerResponse(
             val url: String?,
             val signatureCipher: String?
         ) {
-            suspend fun findUrl() = url ?: signatureCipher?.let { Innertube.decodeSignatureCipher(it) }
+            suspend fun findUrl(context: Context) =
+                url ?: signatureCipher?.let { Innertube.decodeSignatureCipher(context, it) }
         }
     }
 
     @Serializable
     data class VideoDetails(
         val videoId: String?
+    )
+}
+
+@Serializable
+data class ErrorScreen(
+    val playerErrorMessageRenderer: PlayerErrorMessageRenderer? = null
+) {
+    @Serializable
+    data class PlayerErrorMessageRenderer(
+        val subreason: Runs? = null
     )
 }

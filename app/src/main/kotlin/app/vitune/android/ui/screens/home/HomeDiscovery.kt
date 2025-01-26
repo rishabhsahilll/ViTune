@@ -64,6 +64,7 @@ import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.center
 import app.vitune.android.utils.color
 import app.vitune.android.utils.forcePlay
+import app.vitune.android.utils.playingSong
 import app.vitune.android.utils.rememberSnapLayoutInfo
 import app.vitune.android.utils.secondary
 import app.vitune.android.utils.semiBold
@@ -263,6 +264,8 @@ fun HomeDiscovery(
                         }
                     )
 
+                    val (currentMediaId, playing) = playingSong(binder)
+
                     LazyHorizontalGrid(
                         state = trendingGridState,
                         rows = GridCells.Fixed(4),
@@ -300,7 +303,8 @@ fun HomeDiscovery(
                                     )
                                     .animateItem(fadeInSpec = null, fadeOutSpec = null)
                                     .width(itemWidth),
-                                showDuration = false
+                                showDuration = false,
+                                isPlaying = playing && currentMediaId == song.key
                             )
                         }
                     }

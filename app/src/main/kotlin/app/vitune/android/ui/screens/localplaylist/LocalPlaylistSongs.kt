@@ -62,6 +62,7 @@ import app.vitune.android.utils.enqueue
 import app.vitune.android.utils.forcePlayAtIndex
 import app.vitune.android.utils.forcePlayFromBeginning
 import app.vitune.android.utils.launchYouTubeMusic
+import app.vitune.android.utils.playingSong
 import app.vitune.android.utils.toast
 import app.vitune.compose.reordering.animateItemPlacement
 import app.vitune.compose.reordering.draggedItem
@@ -144,6 +145,8 @@ fun LocalPlaylistSongs(
             onDelete()
         }
     )
+
+    val (currentMediaId, playing) = playingSong(binder)
 
     Box {
         LookaheadScope {
@@ -307,7 +310,8 @@ fun LocalPlaylistSongs(
                                 index = index
                             )
                         },
-                        clip = !reorderingState.isDragging
+                        clip = !reorderingState.isDragging,
+                        isPlaying = playing && currentMediaId == song.id
                     )
                 }
             }

@@ -15,7 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
+import app.vitune.android.R
 import app.vitune.android.preferences.UIStatePreferences
 import app.vitune.core.ui.LocalAppearance
 import kotlinx.collections.immutable.toImmutableList
@@ -29,6 +31,7 @@ fun Scaffold(
     onTabChange: (Int) -> Unit,
     tabColumnContent: TabsBuilder.() -> Unit,
     modifier: Modifier = Modifier,
+    tabsEditingTitle: String = stringResource(R.string.tabs),
     content: @Composable AnimatedVisibilityScope.(Int) -> Unit
 ) {
     val (colorPalette) = LocalAppearance.current
@@ -46,6 +49,7 @@ fun Scaffold(
             onTabIndexChange = onTabChange,
             hiddenTabs = hiddenTabs,
             setHiddenTabs = { hiddenTabs = it.toImmutableList() },
+            tabsEditingTitle = tabsEditingTitle,
             content = tabColumnContent
         )
 

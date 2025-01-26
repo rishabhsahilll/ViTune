@@ -201,6 +201,13 @@ fun AppearanceSettings() = with(AppearancePreferences) {
                 isChecked = autoPip,
                 onCheckedChange = { autoPip = it }
             )
+
+            SwitchSettingsEntry(
+                title = stringResource(R.string.auto_open_player),
+                text = stringResource(R.string.auto_open_player_description),
+                isChecked = openPlayer,
+                onCheckedChange = { openPlayer = it }
+            )
         }
         SettingsGroup(title = stringResource(R.string.songs)) {
             SwitchSettingsEntry(

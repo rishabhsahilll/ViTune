@@ -21,7 +21,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 
-const val TAG = "GlyphInterface"
+private const val TAG = "GlyphInterface"
 
 enum class NothingDevice(val tag: String, val progressChannel: Int) {
     Phone1(tag = Common.DEVICE_20111, progressChannel = Glyph.Code_20111.D1_1),

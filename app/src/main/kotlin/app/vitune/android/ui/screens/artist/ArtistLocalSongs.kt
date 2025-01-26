@@ -36,6 +36,7 @@ import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.enqueue
 import app.vitune.android.utils.forcePlayAtIndex
 import app.vitune.android.utils.forcePlayFromBeginning
+import app.vitune.android.utils.playingSong
 import app.vitune.compose.persist.persist
 import app.vitune.core.ui.Dimensions
 import app.vitune.core.ui.LocalAppearance
@@ -60,6 +61,8 @@ fun ArtistLocalSongs(
     }
 
     val lazyListState = rememberLazyListState()
+
+    val (currentMediaId, playing) = playingSong(binder)
 
     LayoutWithAdaptiveThumbnail(
         thumbnailContent = thumbnailContent,
@@ -117,7 +120,8 @@ fun ArtistLocalSongs(
                                 }
                             ),
                             song = song,
-                            thumbnailSize = Dimensions.thumbnails.song
+                            thumbnailSize = Dimensions.thumbnails.song,
+                            isPlaying = playing && currentMediaId == song.id
                         )
                     }
                 } ?: item(key = "loading") {

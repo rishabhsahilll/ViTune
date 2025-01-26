@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -36,6 +37,7 @@ import app.vitune.android.ui.components.themed.HeaderIconButton
 import app.vitune.core.ui.LocalAppearance
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.distinctUntilChanged
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -115,15 +117,25 @@ class ConditionalCacheDataSourceFactory(
         private lateinit var selectedFactory: DataSource.Factory
         private val transferListeners = mutableListOf<TransferListener>()
 
-        private fun createSource(factory: DataSource.Factory = selectedFactory) = factory.createDataSource().apply {
-            transferListeners.forEach { addTransferListener(it) }
-        }
+        private fun createSource(factory: DataSource.Factory = selectedFactory) =
+            factory.createDataSource().apply {
+                transferListeners.forEach { addTransferListener(it) }
+            }
 
+        private val open = AtomicBoolean(false)
         private var source by object : ReadWriteProperty<Any?, DataSource> {
             var s: DataSource? = null
 
             override fun getValue(thisRef: Any?, property: KProperty<*>) = s ?: run {
-                val newSource = createSource()
+                val newSource = runCatching {
+                    createSource()
+                }.getOrElse {
+                    if (it is UninitializedPropertyAccessException) throw PlaybackException(
+                        /* message = */ "Illegal access of data source methods before calling open()",
+                        /* cause = */ it,
+                        /* errorCode = */ PlaybackException.ERROR_CODE_UNSPECIFIED
+                    ) else throw it
+                }
                 s = newSource
                 newSource
             }
@@ -147,6 +159,8 @@ class ConditionalCacheDataSourceFactory(
                 if (shouldCache(dataSpec)) cacheDataSourceFactory else upstreamDataSourceFactory
 
             return runCatching {
+                // Source is still considered 'open' even when an error occurs. See DataSource::close
+                open.set(true)
                 source.open(dataSpec)
             }.getOrElse {
                 if (it is ReadOnlyException) {
@@ -156,7 +170,9 @@ class ConditionalCacheDataSourceFactory(
             }
         }
 
-        override fun getUri() = source.uri
-        override fun close() = source.close()
+        override fun getUri() = if (open.get()) source.uri else null
+        override fun close() = if (open.compareAndSet(true, false)) {
+            source.close()
+        } else Unit
     }
 }

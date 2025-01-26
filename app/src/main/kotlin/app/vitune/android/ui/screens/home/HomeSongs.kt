@@ -75,6 +75,7 @@ import app.vitune.android.utils.center
 import app.vitune.android.utils.color
 import app.vitune.android.utils.forcePlayAtIndex
 import app.vitune.android.utils.formatted
+import app.vitune.android.utils.playingSong
 import app.vitune.android.utils.secondary
 import app.vitune.android.utils.semiBold
 import app.vitune.compose.persist.persistList
@@ -147,6 +148,8 @@ fun HomeSongs(
     }
 
     val lazyListState = rememberLazyListState()
+
+    val (currentMediaId, playing) = playingSong(binder)
 
     Box(
         modifier = Modifier
@@ -301,7 +304,8 @@ fun HomeSongs(
                                     .align(Alignment.BottomCenter)
                             )
                         }
-                    } else null
+                    } else null,
+                    isPlaying = playing && currentMediaId == song.id
                 )
             }
         }

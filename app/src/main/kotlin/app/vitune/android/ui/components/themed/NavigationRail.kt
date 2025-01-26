@@ -11,12 +11,14 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
@@ -45,6 +47,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import app.vitune.android.LocalPlayerAwareWindowInsets
@@ -185,12 +188,12 @@ inline fun NavigationRail(
     hiddenTabs: ImmutableList<String>,
     crossinline setHiddenTabs: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
+    tabsEditingTitle: String = stringResource(R.string.tabs),
     crossinline content: TabsBuilder.() -> Unit
 ) {
     val (colorPalette, typography) = LocalAppearance.current
 
     val tabs = TabsBuilder.rememberTabs(content)
-
     val isLandscape = isLandscape
 
     val paddingValues = LocalPlayerAwareWindowInsets.current
@@ -204,7 +207,7 @@ inline fun NavigationRail(
         horizontalPadding = 0.dp
     ) {
         BasicText(
-            text = stringResource(R.string.tabs),
+            text = tabsEditingTitle,
             style = typography.s.center.semiBold,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
@@ -264,8 +267,11 @@ inline fun NavigationRail(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .width(if (isLandscape) Dimensions.navigationRail.widthLandscape else Dimensions.navigationRail.width)
+            verticalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.width(
+                if (isLandscape) Dimensions.navigationRail.widthLandscape
+                else Dimensions.navigationRail.width
+            )
         ) {
             val transition = updateTransition(targetState = tabIndex, label = null)
 
@@ -305,7 +311,9 @@ inline fun NavigationRail(
                             modifier = Modifier
                                 .vertical(enabled = !isLandscape)
                                 .rotate(if (isLandscape) 0f else -90f)
-                                .padding(horizontal = 16.dp)
+                                .padding(horizontal = 16.dp),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 2
                         )
                     }
 
@@ -318,7 +326,9 @@ inline fun NavigationRail(
 
                     if (isLandscape) Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = contentModifier.padding(vertical = 8.dp)
+                        modifier = contentModifier
+                            .padding(vertical = 8.dp)
+                            .fillMaxWidth()
                     ) {
                         iconContent()
                         textContent()

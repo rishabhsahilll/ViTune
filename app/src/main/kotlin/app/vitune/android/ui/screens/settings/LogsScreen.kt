@@ -54,7 +54,7 @@ import app.vitune.android.utils.semiBold
 import app.vitune.android.utils.smoothScrollToTop
 import app.vitune.compose.routing.RouteHandler
 import app.vitune.core.ui.LocalAppearance
-import app.vitune.core.ui.primaryButton
+import app.vitune.core.ui.surface
 import app.vitune.core.ui.utils.ActivityIntentBundleAccessor
 import kotlinx.coroutines.delay
 
@@ -180,7 +180,7 @@ fun LazyItemScope.FormattedLine(
             Logcat.FormattedLine.Level.Error -> colorPalette.red
             Logcat.FormattedLine.Level.Warning -> colorPalette.yellow
             Logcat.FormattedLine.Level.Debug -> colorPalette.blue
-            Logcat.FormattedLine.Level.Info -> colorPalette.primaryButton
+            Logcat.FormattedLine.Level.Info -> colorPalette.surface
             Logcat.FormattedLine.Level.Unknown -> colorPalette.textDisabled
         }
     }

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
@@ -211,9 +212,7 @@ class MainActivity : ComponentActivity(), MonetColorsChangedListener {
         SystemBarAppearance(palette = appearance.colorPalette)
 
         BoxWithConstraints(
-            modifier = modifier
-                .fillMaxSize()
-                .background(appearance.colorPalette.background0)
+            modifier = Modifier.background(appearance.colorPalette.background0) then modifier.fillMaxSize()
         ) {
             CompositionLocalProvider(
                 LocalAppearance provides appearance,
@@ -234,10 +233,18 @@ class MainActivity : ComponentActivity(), MonetColorsChangedListener {
     @Suppress("CyclomaticComplexMethod")
     @OptIn(ExperimentalLayoutApi::class)
     fun setContent() = setContent {
-        AppWrapper {
+        val windowInsets = WindowInsets.systemBars
+
+        AppWrapper(
+            modifier = Modifier.padding(
+                WindowInsets
+                    .displayCutout
+                    .only(WindowInsetsSides.Horizontal)
+                    .asPaddingValues()
+            )
+        ) {
             val density = LocalDensity.current
-            val windowsInsets = WindowInsets.systemBars
-            val bottomDp = with(density) { windowsInsets.getBottom(density).toDp() }
+            val bottomDp = with(density) { windowInsets.getBottom(density).toDp() }
 
             val imeVisible = WindowInsets.isImeVisible
             val imeBottomDp = with(density) { WindowInsets.ime.getBottom(density).toDp() }
@@ -266,7 +273,7 @@ class MainActivity : ComponentActivity(), MonetColorsChangedListener {
                         animatedBottomDp..playerBottomSheetState.collapsedBound
                     )
 
-                windowsInsets
+                windowInsets
                     .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                     .add(WindowInsets(bottom = bottom))
             }
@@ -343,8 +350,10 @@ class MainActivity : ComponentActivity(), MonetColorsChangedListener {
                         }
 
                         reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED &&
-                                mediaItem.mediaMetadata.extras?.songBundle?.isFromPersistentQueue != true
-                            -> playerBottomSheetState.expandSoft()
+                                mediaItem.mediaMetadata.extras?.songBundle?.isFromPersistentQueue != true -> {
+                            if (AppearancePreferences.openPlayer) playerBottomSheetState.expandSoft()
+                            else Unit
+                        }
 
                         playerBottomSheetState.dismissed -> playerBottomSheetState.collapseSoft()
 
@@ -395,7 +404,7 @@ class MainActivity : ComponentActivity(), MonetColorsChangedListener {
 
                     @Suppress("deprecation")
                     MediaStore.Audio.Playlists.ENTRY_CONTENT_TYPE
-                    -> extras.playlist
+                        -> extras.playlist
 
                     else -> null
                 }

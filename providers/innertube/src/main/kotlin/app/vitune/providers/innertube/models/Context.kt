@@ -1,9 +1,17 @@
 package app.vitune.providers.innertube.models
 
+import app.vitune.providers.innertube.Innertube
+import app.vitune.providers.innertube.json
+import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.headers
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMessageBuilder
 import io.ktor.http.parameters
 import io.ktor.http.userAgent
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.util.Locale
@@ -16,12 +24,15 @@ data class Context(
 ) {
     @Serializable
     data class Client(
+        @Transient
+        val clientId: Int = 0,
         val clientName: String,
         val clientVersion: String,
         val platform: String? = null,
         val hl: String = "en",
         val gl: String = "US",
-        val visitorData: String = DEFAULT_VISITOR_DATA,
+        @SerialName("visitorData")
+        val defaultVisitorData: String = DEFAULT_VISITOR_DATA,
         val androidSdkVersion: Int? = null,
         val userAgent: String? = null,
         val referer: String? = null,
@@ -33,8 +44,93 @@ data class Context(
         val timeZone: String? = "UTC",
         val utcOffsetMinutes: Int? = 0,
         @Transient
-        val apiKey: String? = null
-    )
+        val apiKey: String? = null,
+        @Transient
+        val music: Boolean = false
+    ) {
+        @Serializable
+        data class Configuration(
+            @SerialName("PLAYER_JS_URL")
+            val playerUrl: String? = null,
+            @SerialName("WEB_PLAYER_CONTEXT_CONFIGS")
+            val contextConfigs: Map<String, ContextConfig>? = null,
+            @SerialName("VISITOR_DATA")
+            val visitorData: String? = null,
+            @SerialName("INNERTUBE_CONTEXT")
+            val innertubeContext: Context
+        ) {
+            @Serializable
+            data class ContextConfig(
+                val jsUrl: String? = null
+            )
+        }
+
+        @Transient
+        private val mutex = Mutex()
+
+        @Transient
+        private var ytcfg: Configuration? = null
+
+        private val baseUrl
+            get() = when {
+                platform == "TV" -> "https://www.youtube.com/tv"
+                music -> "https://music.youtube.com/"
+                else -> "https://www.youtube.com/"
+            }
+        val root get() = if (music) "https://music.youtube.com/" else "https://www.youtube.com/"
+
+        internal val jsUrl
+            get() = ytcfg?.playerUrl
+                ?: ytcfg?.contextConfigs?.firstNotNullOfOrNull { it.value.jsUrl }
+
+        val visitorData
+            get() = ytcfg?.visitorData
+                ?: ytcfg?.innertubeContext?.client?.defaultVisitorData
+                ?: defaultVisitorData
+
+        companion object {
+            private val YTCFG_REGEX = "ytcfg\\.set\\s*\\(\\s*(\\{[\\s\\S]+?\\})\\s*\\)".toRegex()
+        }
+
+        context(HttpMessageBuilder)
+        fun apply() {
+            userAgent?.let { userAgent(it) }
+
+            headers {
+                referer?.let { set("Referer", it) }
+                set("X-Youtube-Bootstrap-Logged-In", "false")
+                set("X-YouTube-Client-Name", clientId.toString())
+                set("X-YouTube-Client-Version", clientVersion)
+                apiKey?.let { set("X-Goog-Api-Key", it) }
+                set("X-Goog-Visitor-Id", visitorData)
+            }
+
+            parameters {
+                apiKey?.let { set("key", it) }
+            }
+        }
+
+        suspend fun getConfiguration(): Configuration? = mutex.withLock {
+            ytcfg ?: runCatching {
+                val playerPage = Innertube.client.get(baseUrl) {
+                    userAgent?.let { header("User-Agent", it) }
+                }.bodyAsText()
+
+                val objStr = YTCFG_REGEX
+                    .find(playerPage)
+                    ?.groups
+                    ?.get(1)
+                    ?.value
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() } ?: return@runCatching null
+
+                json.decodeFromString<Configuration>(objStr).also { ytcfg = it }
+            }.getOrElse {
+                it.printStackTrace()
+                null
+            }
+        }
+    }
 
     @Serializable
     data class ThirdParty(
@@ -47,105 +143,95 @@ data class Context(
     )
 
     context(HttpMessageBuilder)
-    fun apply() {
-        client.userAgent?.let { userAgent(it) }
-
-        headers {
-            client.referer?.let { append("Referer", it) }
-            append("X-Youtube-Bootstrap-Logged-In", "false")
-            append("X-YouTube-Client-Name", client.clientName)
-            append("X-YouTube-Client-Version", client.clientVersion)
-            client.apiKey?.let { append("X-Goog-Api-Key", it) }
-        }
-
-        parameters {
-            client.apiKey?.let { append("key", it) }
-        }
-    }
+    fun apply() = client.apply()
 
     companion object {
-        private val Context.withLang: Context get() {
-            val locale = Locale.getDefault()
+        private val Context.withLang: Context
+            get() {
+                val locale = Locale.getDefault()
 
-            return copy(
-                client = client.copy(
-                    hl = locale
-                        .toLanguageTag()
-                        .replace("-Hant", "")
-                        .takeIf { it in validLanguageCodes } ?: "en",
-                    gl = locale
-                        .country
-                        .takeIf { it in validCountryCodes } ?: "US"
+                return copy(
+                    client = client.copy(
+                        hl = locale
+                            .toLanguageTag()
+                            .replace("-Hant", "")
+                            .takeIf { it in validLanguageCodes } ?: "en",
+                        gl = locale
+                            .country
+                            .takeIf { it in validCountryCodes } ?: "US"
+                    )
                 )
-            )
-        }
+            }
         const val DEFAULT_VISITOR_DATA = "CgtsZG1ySnZiQWtSbyiMjuGSBg%3D%3D"
 
         val DefaultWeb get() = DefaultWebNoLang.withLang
 
         val DefaultWebNoLang = Context(
             client = Client(
+                clientId = 67,
                 clientName = "WEB_REMIX",
                 clientVersion = "1.20220606.03.00",
                 platform = "DESKTOP",
                 userAgent = UserAgents.DESKTOP,
-                referer = "https://music.youtube.com/"
-            )
-        )
-
-        val DefaultWebOld = Context(
-            client = Client(
-                clientName = "WEB",
-                clientVersion = "2.20240509.00.00",
-                platform = "DESKTOP",
-                userAgent = UserAgents.DESKTOP,
                 referer = "https://music.youtube.com/",
-                apiKey = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
+                music = true
             )
         )
 
         val DefaultIOS = Context(
             client = Client(
+                clientId = 5,
                 clientName = "IOS",
-                clientVersion = "19.29.1",
+                clientVersion = "20.03.02",
                 deviceMake = "Apple",
                 deviceModel = "iPhone16,2",
-                osName = "iOS",
-                osVersion = "17.5.1.21F90",
+                osName = "iPhone",
+                osVersion = "18.2.1.22C161",
                 acceptHeader = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 userAgent = UserAgents.IOS,
-                apiKey = "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc"
+                apiKey = "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc",
+                music = false
             )
         )
 
         val DefaultAndroid = Context(
             client = Client(
+                clientId = 3,
                 clientName = "ANDROID",
-                clientVersion = "17.36.4",
+                clientVersion = "19.44.38",
+                osName = "Android",
+                osVersion = "11",
                 platform = "MOBILE",
                 androidSdkVersion = 30,
                 userAgent = UserAgents.ANDROID,
-                apiKey = "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w"
+                apiKey = "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w",
+                music = false
             )
         )
 
         val DefaultAndroidMusic = Context(
             client = Client(
+                clientId = 21,
                 clientName = "ANDROID_MUSIC",
-                clientVersion = "5.22.1",
+                clientVersion = "7.27.52",
                 platform = "MOBILE",
+                osVersion = "11",
                 androidSdkVersion = 30,
                 userAgent = UserAgents.ANDROID_MUSIC,
-                apiKey = "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI"
+                apiKey = "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI",
+                music = true
             )
         )
 
-        val DefaultAgeRestrictionBypass = Context(
+        val DefaultTV = Context(
             client = Client(
-                clientName = "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
-                clientVersion = "2.0",
+                clientId = 7,
+                clientName = "TVHTML5",
+                clientVersion = "7.20241201.18.00",
                 platform = "TV",
-                userAgent = UserAgents.PLAYSTATION
+                userAgent = UserAgents.TV,
+                referer = "https://www.youtube.com/",
+                music = false
             )
         )
     }
@@ -163,9 +249,12 @@ val validCountryCodes =
 
 @Suppress("MaximumLineLength")
 object UserAgents {
-    const val DESKTOP = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36"
-    const val ANDROID = "com.google.android.youtube/17.36.4 (Linux; U; Android 11) gzip"
-    const val ANDROID_MUSIC = "com.google.android.youtube/19.29.1  (Linux; U; Android 11) gzip"
+    const val DESKTOP =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36"
+    const val ANDROID = "com.google.android.youtube/19.44.38 (Linux; U; Android 11) gzip"
+    const val ANDROID_MUSIC =
+        "com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 11) gzip"
     const val PLAYSTATION = "Mozilla/5.0 (PlayStation 4 5.55) AppleWebKit/601.2 (KHTML, like Gecko)"
-    const val IOS = "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)"
+    const val IOS = "com.google.ios.youtube/20.03.02 (iPhone16,2; U; CPU iOS 18_2_1 like Mac OS X;)"
+    const val TV = "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version"
 }

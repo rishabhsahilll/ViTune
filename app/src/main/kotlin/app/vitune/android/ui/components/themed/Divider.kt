@@ -51,9 +51,7 @@ fun VerticalDivider(
     thickness: Dp = 1.dp,
     color: Color = LocalAppearance.current.colorPalette.textDisabled
 ) = Canvas(
-    modifier = modifier
-        .fillMaxHeight()
-        .width(thickness)
+    modifier = modifier.width(thickness)
 ) {
     val stroke = thickness.toPx()
 

@@ -29,7 +29,8 @@ object Dimensions {
         val collapsedPlayerHeight = 64.dp
 
         val verticalPadding = 8.dp
-        val horizontalPadding = 12.dp
+        val horizontalPadding = 8.dp
+        val alternativePadding = 12.dp
 
         val gap = 4.dp
     }
@@ -37,8 +38,8 @@ object Dimensions {
     val items = Items
 
     object NavigationRail {
-        val width = 64.dp
-        val widthLandscape = 128.dp
+        val width = 60.dp
+        val widthLandscape = 120.dp
         val iconOffset = 6.dp
     }
 

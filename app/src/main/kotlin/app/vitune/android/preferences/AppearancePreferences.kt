@@ -41,4 +41,5 @@ object AppearancePreferences : GlobalPreferencesHolder() {
     var maxThumbnailSize by int(1920)
     var hideExplicit by boolean(false)
     var autoPip by boolean(false)
+    var openPlayer by boolean(true)
 }

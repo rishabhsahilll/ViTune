@@ -42,6 +42,7 @@ import app.vitune.android.ui.items.SongItemPlaceholder
 import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.forcePlay
 import app.vitune.android.utils.medium
+import app.vitune.android.utils.playingSong
 import app.vitune.android.utils.secondary
 import app.vitune.android.utils.semiBold
 import app.vitune.core.ui.Dimensions
@@ -137,6 +138,8 @@ fun ArtistOverview(
                         }
                     }
 
+                    val (currentMediaId, playing) = playingSong(binder)
+
                     songs.forEach { song ->
                         SongItem(
                             song = song,
@@ -160,7 +163,8 @@ fun ArtistOverview(
                                         )
                                     }
                                 )
-                                .padding(endPaddingValues)
+                                .padding(endPaddingValues),
+                            isPlaying = playing && currentMediaId == song.key
                         )
                     }
                 }

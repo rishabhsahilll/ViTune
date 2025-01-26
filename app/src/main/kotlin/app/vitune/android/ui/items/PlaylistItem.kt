@@ -6,10 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -114,7 +117,7 @@ fun PlaylistItem(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .align(alignment)
-                            .size(thumbnailSize / 2)
+                            .fillMaxSize(.5f)
                     )
                 }
             }
@@ -182,7 +185,12 @@ fun PlaylistItem(
 ) = ItemContainer(
     alternative = alternative,
     thumbnailSize = thumbnailSize,
-    modifier = Modifier.clip(LocalAppearance.current.thumbnailShape) then modifier
+    modifier = Modifier.clip(
+        (
+                LocalAppearance.current.thumbnailShapeCorners +
+                        if (alternative) Dimensions.items.alternativePadding else Dimensions.items.horizontalPadding
+                ).roundedShape
+    ) then modifier
 ) { centeredModifier ->
     val (colorPalette, typography, thumbnailShapeCorners) = LocalAppearance.current
 
@@ -190,7 +198,16 @@ fun PlaylistItem(
         modifier = centeredModifier
             .clip(thumbnailShapeCorners.roundedShape)
             .background(color = colorPalette.background1)
-            .requiredSize(thumbnailSize)
+            .let {
+                if (alternative) it
+                    .sizeIn(
+                        minWidth = thumbnailSize,
+                        minHeight = thumbnailSize
+                    )
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                else it.requiredSize(thumbnailSize)
+            }
     ) {
         thumbnailContent(Modifier.fillMaxSize())
 

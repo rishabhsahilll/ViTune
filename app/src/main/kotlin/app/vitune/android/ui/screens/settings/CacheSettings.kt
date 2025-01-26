@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
@@ -20,6 +22,7 @@ import app.vitune.android.R
 import app.vitune.android.preferences.DataPreferences
 import app.vitune.android.preferences.PlayerPreferences
 import app.vitune.android.ui.components.themed.LinearProgressIndicator
+import app.vitune.android.ui.components.themed.SecondaryTextButton
 import app.vitune.android.ui.screens.Route
 import app.vitune.core.data.enums.ExoPlayerDiskCacheSize
 import coil3.imageLoader
@@ -30,17 +33,18 @@ import coil3.imageLoader
 fun CacheSettings() = with(DataPreferences) {
     val context = LocalContext.current
     val binder = LocalPlayerServiceBinder.current
+    val imageCache = remember(context) { context.imageLoader.diskCache }
 
     SettingsCategoryScreen(title = stringResource(R.string.cache)) {
         SettingsDescription(text = stringResource(R.string.cache_description))
 
-        context.imageLoader.diskCache?.let { diskCache ->
-            val diskCacheSize by remember { derivedStateOf { diskCache.size } }
-            val formattedSize = remember(diskCacheSize) {
-                Formatter.formatShortFileSize(context, diskCacheSize)
+        var imageCacheSize by remember(imageCache) { mutableLongStateOf(imageCache?.size ?: 0L) }
+        imageCache?.let { diskCache ->
+            val formattedSize = remember(imageCacheSize) {
+                Formatter.formatShortFileSize(context, imageCacheSize)
             }
-            val sizePercentage = remember(diskCacheSize, coilDiskCacheMaxSize) {
-                diskCacheSize.toFloat() / coilDiskCacheMaxSize.bytes.coerceAtLeast(1)
+            val sizePercentage = remember(imageCacheSize, coilDiskCacheMaxSize) {
+                imageCacheSize.toFloat() / coilDiskCacheMaxSize.bytes.coerceAtLeast(1)
             }
 
             SettingsGroup(
@@ -49,7 +53,17 @@ fun CacheSettings() = with(DataPreferences) {
                     R.string.format_cache_space_used_percentage,
                     formattedSize,
                     (sizePercentage * 100).toInt()
-                )
+                ),
+                trailingContent = {
+                    SecondaryTextButton(
+                        text = stringResource(R.string.clear),
+                        onClick = {
+                            diskCache.clear()
+                            imageCacheSize = 0L
+                        },
+                        modifier = Modifier.padding(end = 12.dp)
+                    )
+                }
             ) {
                 LinearProgressIndicator(
                     progress = sizePercentage,

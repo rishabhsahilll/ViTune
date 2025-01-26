@@ -33,6 +33,7 @@ import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.enqueue
 import app.vitune.android.utils.forcePlayAtIndex
 import app.vitune.android.utils.forcePlayFromBeginning
+import app.vitune.android.utils.playingSong
 import app.vitune.core.ui.Dimensions
 import app.vitune.core.ui.LocalAppearance
 import app.vitune.core.ui.utils.isLandscape
@@ -59,6 +60,8 @@ fun AlbumSongs(
     val binder = LocalPlayerServiceBinder.current
     val menuState = LocalMenuState.current
     val lazyListState = rememberLazyListState()
+
+    val (currentMediaId, playing) = playingSong(binder)
 
     Box {
         LazyColumn(
@@ -121,7 +124,8 @@ fun AlbumSongs(
                                 index = index
                             )
                         }
-                    )
+                    ),
+                    isPlaying = playing && currentMediaId == song.id
                 )
             }
 

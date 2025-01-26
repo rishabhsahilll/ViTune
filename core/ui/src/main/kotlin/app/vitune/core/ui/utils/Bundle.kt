@@ -2,6 +2,7 @@ package app.vitune.core.ui.utils
 
 import android.annotation.SuppressLint
 import android.app.SearchManager
+import android.content.Context
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import android.os.Bundle
@@ -278,6 +279,34 @@ class EqualizerIntentBundleAccessor(val extras: Bundle = Bundle()) : BundleAcces
     companion object {
         fun bundle(block: EqualizerIntentBundleAccessor.() -> Unit) =
             EqualizerIntentBundleAccessor().apply(block).extras
+
+        context(Context)
+        fun sendOpenEqualizer(
+            sessionId: Int,
+            @ContentType
+            type: Int = AudioEffect.CONTENT_TYPE_MUSIC
+        ) = sendBroadcast(
+            Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                replaceExtras(
+                    bundle {
+                        audioSession = sessionId
+                        packageName = this@Context.packageName
+                        contentType = type
+                    }
+                )
+            }
+        )
+
+        context(Context)
+        fun sendCloseEqualizer(sessionId: Int) = sendBroadcast(
+            Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                replaceExtras(
+                    EqualizerIntentBundleAccessor.bundle {
+                        audioSession = sessionId
+                    }
+                )
+            }
+        )
     }
 
     var audioSession by extras.int(AudioEffect.EXTRA_AUDIO_SESSION)

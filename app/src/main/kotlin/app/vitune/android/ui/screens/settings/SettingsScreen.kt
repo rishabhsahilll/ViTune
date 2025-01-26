@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
@@ -185,7 +187,8 @@ fun SliderSettingsEntry(
     toDisplay: @Composable (Float) -> String = { it.toString() },
     steps: Int = 0,
     isEnabled: Boolean = true,
-    usePadding: Boolean = true
+    usePadding: Boolean = true,
+    showTicks: Boolean = steps != 0
 ) = Column(modifier = modifier) {
     SettingsEntry(
         title = title,
@@ -201,6 +204,7 @@ fun SliderSettingsEntry(
         onSlideComplete = onSlideComplete,
         range = range,
         steps = steps,
+        showTicks = showTicks,
         modifier = Modifier
             .height(36.dp)
             .alpha(if (isEnabled) 1f else 0.5f)
@@ -259,6 +263,7 @@ fun SettingsEntry(
     horizontalArrangement = Arrangement.spacedBy(16.dp),
     verticalAlignment = Alignment.CenterVertically,
     modifier = modifier
+        .clip(RoundedCornerShape(25))
         .clickable(enabled = isEnabled, onClick = onClick)
         .alpha(if (isEnabled) 1f else 0.5f)
         .let { if (usePadding) it.padding(start = 32.dp, end = 16.dp) else it }
@@ -308,8 +313,8 @@ fun SettingsEntryGroupText(
     val (colorPalette, typography) = LocalAppearance.current
 
     BasicText(
-        text = title.uppercase(),
-        style = typography.xxs.semiBold.copy(colorPalette.accent),
+        text = title,
+        style = typography.xs.semiBold.copy(colorPalette.accent),
         modifier = modifier
             .padding(start = 16.dp)
             .padding(horizontal = 16.dp)
@@ -318,7 +323,7 @@ fun SettingsEntryGroupText(
 }
 
 @Composable
-fun SettingsGroupSpacer(modifier: Modifier = Modifier) = Spacer(modifier = modifier.height(24.dp))
+fun SettingsGroupSpacer(modifier: Modifier = Modifier) = Spacer(modifier = modifier.height(16.dp))
 
 @Composable
 fun SettingsCategoryScreen(
@@ -361,15 +366,25 @@ fun SettingsGroup(
     modifier: Modifier = Modifier,
     description: String? = null,
     important: Boolean = false,
+    trailingContent: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
-) = Column(modifier = modifier) {
-    SettingsEntryGroupText(title = title)
+) = Column(modifier = modifier.fillMaxWidth()) {
+    Row {
+        Column {
+            SettingsEntryGroupText(title = title)
 
-    description?.let { description ->
-        SettingsDescription(
-            text = description,
-            important = important
-        )
+            description?.let { description ->
+                SettingsDescription(
+                    text = description,
+                    important = important
+                )
+            }
+        }
+
+        trailingContent?.let {
+            Spacer(Modifier.weight(1f))
+            it()
+        }
     }
 
     content()

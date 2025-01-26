@@ -279,7 +279,15 @@ fun SyncSettings(
             )
         }
         SettingsGroup(title = stringResource(R.string.piped_sessions)) {
-            pipedSessions.fastForEachIndexed { i, session ->
+            if (pipedSessions.isEmpty()) {
+                SettingsGroupSpacer()
+
+                BasicText(
+                    text = stringResource(R.string.no_items_found),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    style = typography.s.semiBold.center
+                )
+            } else pipedSessions.fastForEachIndexed { i, session ->
                 SettingsEntry(
                     title = session.username,
                     text = session.apiBaseUrl.toString(),

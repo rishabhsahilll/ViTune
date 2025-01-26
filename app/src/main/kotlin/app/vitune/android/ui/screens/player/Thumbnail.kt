@@ -159,18 +159,19 @@ fun Thumbnail(
         if (currentWindow != null) Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(thumbnailShape)
                 .shadow(
                     elevation = shadowElevation,
                     shape = thumbnailShape,
                     clip = false
                 )
-                .clip(thumbnailShape)
         ) {
             var height by remember { mutableIntStateOf(0) }
 
             AsyncImage(
                 model = currentWindow.mediaItem.mediaMetadata.artworkUri
                     ?.thumbnail((Dimensions.thumbnails.player.song - 64.dp).px),
+                placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
                 error = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = null,
                 contentScale = contentScale,
@@ -190,14 +191,15 @@ fun Thumbnail(
                             }
                         )
                     }
+                    .align(Alignment.Center)
                     .fillMaxWidth()
-                    .animateContentSize()
                     .background(colorPalette.background0)
                     .let {
                         if (blurRadius == 0.dp) it else it.blur(radius = blurRadius)
                     }
-                    .onGloballyPositioned {
-                        height = it.size.height
+                    .animateContentSize()
+                    .onGloballyPositioned { coords ->
+                        coords.size.height.let { if (it > 0) height = it }
                     }
             )
 

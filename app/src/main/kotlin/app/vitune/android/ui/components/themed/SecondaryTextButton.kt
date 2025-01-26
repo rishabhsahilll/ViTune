@@ -12,7 +12,7 @@ import app.vitune.android.utils.center
 import app.vitune.android.utils.disabled
 import app.vitune.android.utils.medium
 import app.vitune.core.ui.LocalAppearance
-import app.vitune.core.ui.primaryButton
+import app.vitune.core.ui.surface
 import app.vitune.core.ui.utils.roundedShape
 
 @Composable
@@ -31,7 +31,7 @@ fun SecondaryTextButton(
         modifier = modifier
             .clip(16.dp.roundedShape)
             .clickable(enabled = enabled, onClick = onClick)
-            .background(if (alternative) colorPalette.background0 else colorPalette.primaryButton)
+            .background(if (alternative) colorPalette.background0 else colorPalette.surface)
             .padding(all = 8.dp)
             .padding(horizontal = 8.dp)
     )

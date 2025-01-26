@@ -34,6 +34,7 @@ import app.vitune.android.ui.screens.artistRoute
 import app.vitune.android.ui.screens.playlistRoute
 import app.vitune.android.utils.asMediaItem
 import app.vitune.android.utils.forcePlay
+import app.vitune.android.utils.playingSong
 import app.vitune.compose.persist.LocalPersistMap
 import app.vitune.compose.persist.PersistMapCleanup
 import app.vitune.compose.routing.RouteHandler
@@ -55,6 +56,8 @@ fun SearchResultScreen(query: String, onSearchAgain: () -> Unit) {
     val saveableStateHolder = rememberSaveableStateHolder()
 
     PersistMapCleanup(prefix = "searchResults/$query/")
+
+    val (currentMediaId, playing) = playingSong(binder)
 
     RouteHandler {
         GlobalRoutes()
@@ -122,7 +125,8 @@ fun SearchResultScreen(query: String, onSearchAgain: () -> Unit) {
                                             binder?.player?.forcePlay(song.asMediaItem)
                                             binder?.setupRadio(song.info?.endpoint)
                                         }
-                                    )
+                                    ),
+                                    isPlaying = playing && currentMediaId == song.key
                                 )
                             },
                             itemPlaceholderContent = {

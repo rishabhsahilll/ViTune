@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.drawable.Icon
+import android.util.Log
 import androidx.core.content.ContextCompat
 import app.vitune.core.ui.utils.isAtLeastAndroid6
 import kotlin.properties.PropertyDelegateProvider
@@ -77,12 +78,18 @@ abstract class ActionReceiver(private val base: String) : BroadcastReceiver() {
         context: Context,
         @ContextCompat.RegisterReceiverFlags
         flags: Int = ContextCompat.RECEIVER_NOT_EXPORTED
-    ) = ContextCompat.registerReceiver(
-        /* context  = */ context,
-        /* receiver = */ this@ActionReceiver,
-        /* filter   = */ intentFilter,
-        /* flags    = */ flags
-    )
+    ) {
+        val filter = intentFilter
+
+        Log.d("ActionReceiver", "Registering ${this@ActionReceiver} with filter $filter")
+
+        ContextCompat.registerReceiver(
+            /* context  = */ context,
+            /* receiver = */ this@ActionReceiver,
+            /* filter   = */ filter,
+            /* flags    = */ flags
+        )
+    }
 }
 
 private inline fun <ThisRef, Return> readOnlyProvider(

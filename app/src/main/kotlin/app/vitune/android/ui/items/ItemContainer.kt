@@ -26,10 +26,7 @@ inline fun ItemContainer(
     horizontalAlignment = horizontalAlignment,
     verticalArrangement = Arrangement.spacedBy(12.dp),
     modifier = modifier
-        .padding(
-            vertical = Dimensions.items.verticalPadding,
-            horizontal = Dimensions.items.horizontalPadding
-        )
+        .padding(Dimensions.items.alternativePadding)
         .width(thumbnailSize)
 ) { content(Modifier.align(Alignment.CenterHorizontally)) }
 else Row(

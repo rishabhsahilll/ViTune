@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -36,14 +37,17 @@ import app.vitune.android.models.Playlist
 import app.vitune.android.models.PlaylistPreview
 import app.vitune.android.preferences.DataPreferences
 import app.vitune.android.preferences.OrderPreferences
+import app.vitune.android.preferences.UIStatePreferences
 import app.vitune.android.query
 import app.vitune.android.ui.components.themed.FloatingActionsContainerWithScrollToTop
 import app.vitune.android.ui.components.themed.Header
 import app.vitune.android.ui.components.themed.HeaderIconButton
 import app.vitune.android.ui.components.themed.SecondaryTextButton
 import app.vitune.android.ui.components.themed.TextFieldDialog
+import app.vitune.android.ui.components.themed.VerticalDivider
 import app.vitune.android.ui.items.PlaylistItem
 import app.vitune.android.ui.screens.Route
+import app.vitune.android.ui.screens.builtinplaylist.BuiltInPlaylistScreen
 import app.vitune.android.ui.screens.settings.SettingsEntryGroupText
 import app.vitune.android.ui.screens.settings.SettingsGroupSpacer
 import app.vitune.compose.persist.persist
@@ -107,14 +111,21 @@ fun HomePlaylists(
 
     val lazyGridState = rememberLazyGridState()
 
+    val builtInPlaylists by BuiltInPlaylistScreen.shownPlaylistsAsState()
+
     Box {
         LazyVerticalGrid(
             state = lazyGridState,
-            columns = GridCells.Adaptive(Dimensions.thumbnails.song * 2 + Dimensions.items.verticalPadding * 2),
+            columns = if (UIStatePreferences.playlistsAsGrid)
+                GridCells.Adaptive(Dimensions.thumbnails.playlist + Dimensions.items.alternativePadding * 2)
+            else GridCells.Fixed(1),
             contentPadding = LocalPlayerAwareWindowInsets.current
                 .only(WindowInsetsSides.Vertical + WindowInsetsSides.End)
                 .asPaddingValues(),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.spacedBy(Dimensions.items.alternativePadding),
+            verticalArrangement =
+                if (UIStatePreferences.playlistsAsGrid) Arrangement.spacedBy(Dimensions.items.alternativePadding)
+                else Arrangement.Top,
             modifier = Modifier
                 .fillMaxSize()
                 .background(colorPalette.background0)
@@ -127,6 +138,15 @@ fun HomePlaylists(
                     )
 
                     Spacer(modifier = Modifier.weight(1f))
+
+                    HeaderIconButton(
+                        icon = if (UIStatePreferences.playlistsAsGrid) R.drawable.grid else R.drawable.list,
+                        onClick = {
+                            UIStatePreferences.playlistsAsGrid = !UIStatePreferences.playlistsAsGrid
+                        }
+                    )
+
+                    VerticalDivider(modifier = Modifier.height(8.dp))
 
                     HeaderIconButton(
                         icon = R.drawable.medical,
@@ -157,31 +177,37 @@ fun HomePlaylists(
                 }
             }
 
-            item(key = "favorites") {
+            // TODO: clean up (also in BuiltInPlaylistScreen): icon etc. could live in BuiltInPlaylist (cleans up duplicate code mess)
+
+            if (BuiltInPlaylist.Favorites in builtInPlaylists) item(key = "favorites") {
                 PlaylistItem(
                     icon = R.drawable.heart,
                     colorTint = colorPalette.red,
                     name = stringResource(R.string.favorites),
                     songCount = null,
                     thumbnailSize = Dimensions.thumbnails.playlist,
-                    alternative = true,
-                    modifier = Modifier.clickable { onBuiltInPlaylist(BuiltInPlaylist.Favorites) }
+                    alternative = UIStatePreferences.playlistsAsGrid,
+                    modifier = Modifier
+                        .animateItem()
+                        .clickable { onBuiltInPlaylist(BuiltInPlaylist.Favorites) }
                 )
             }
 
-            item(key = "offline") {
+            if (BuiltInPlaylist.Offline in builtInPlaylists) item(key = "offline") {
                 PlaylistItem(
                     icon = R.drawable.airplane,
                     colorTint = colorPalette.blue,
                     name = stringResource(R.string.offline),
                     songCount = null,
                     thumbnailSize = Dimensions.thumbnails.playlist,
-                    alternative = true,
-                    modifier = Modifier.clickable { onBuiltInPlaylist(BuiltInPlaylist.Offline) }
+                    alternative = UIStatePreferences.playlistsAsGrid,
+                    modifier = Modifier
+                        .animateItem()
+                        .clickable { onBuiltInPlaylist(BuiltInPlaylist.Offline) }
                 )
             }
 
-            item(key = "top") {
+            if (BuiltInPlaylist.Top in builtInPlaylists) item(key = "top") {
                 PlaylistItem(
                     icon = R.drawable.trending,
                     colorTint = colorPalette.red,
@@ -191,20 +217,24 @@ fun HomePlaylists(
                     ),
                     songCount = null,
                     thumbnailSize = Dimensions.thumbnails.playlist,
-                    alternative = true,
-                    modifier = Modifier.clickable { onBuiltInPlaylist(BuiltInPlaylist.Top) }
+                    alternative = UIStatePreferences.playlistsAsGrid,
+                    modifier = Modifier
+                        .animateItem()
+                        .clickable { onBuiltInPlaylist(BuiltInPlaylist.Top) }
                 )
             }
 
-            item(key = "history") {
+            if (BuiltInPlaylist.History in builtInPlaylists) item(key = "history") {
                 PlaylistItem(
                     icon = R.drawable.history,
                     colorTint = colorPalette.textDisabled,
                     name = stringResource(R.string.history),
                     songCount = null,
                     thumbnailSize = Dimensions.thumbnails.playlist,
-                    alternative = true,
-                    modifier = Modifier.clickable { onBuiltInPlaylist(BuiltInPlaylist.History) }
+                    alternative = UIStatePreferences.playlistsAsGrid,
+                    modifier = Modifier
+                        .animateItem()
+                        .clickable { onBuiltInPlaylist(BuiltInPlaylist.History) }
                 )
             }
 
@@ -215,7 +245,7 @@ fun HomePlaylists(
                 PlaylistItem(
                     playlist = playlistPreview,
                     thumbnailSize = Dimensions.thumbnails.playlist,
-                    alternative = true,
+                    alternative = UIStatePreferences.playlistsAsGrid,
                     modifier = Modifier
                         .clickable(onClick = { onPlaylistClick(playlistPreview.playlist) })
                         .animateItem(fadeInSpec = null, fadeOutSpec = null)
@@ -246,7 +276,7 @@ fun HomePlaylists(
                                 channelName = null,
                                 thumbnailUrl = playlist.thumbnailUrl.toString(),
                                 thumbnailSize = Dimensions.thumbnails.playlist,
-                                alternative = true,
+                                alternative = UIStatePreferences.playlistsAsGrid,
                                 modifier = Modifier
                                     .clickable(onClick = {
                                         onPipedPlaylistClick(
